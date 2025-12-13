@@ -29,12 +29,12 @@ class moving_average_crossover(Model):
     def get_returns(self, short_window, long_window):
         data = self.data
 
-        data['SMA50'] = data['Close'].rolling(window=short_window).mean()
-        data['SMA200'] = data['Close'].rolling(window=long_window).mean()
+        data['SMA_short'] = data['Close'].rolling(window=short_window).mean()
+        data['SMA_long'] = data['Close'].rolling(window=long_window).mean()
 
         data['Signal'] = 0
-        data.loc[data['SMA50'] > data['SMA200'], 'Signal'] = 1
-        data.loc[data['SMA50'] < data['SMA200'], 'Signal'] = -1
+        data.loc[data['SMA_short'] > data['SMA_long'], 'Signal'] = 1
+        data.loc[data['SMA_short'] < data['SMA_long'], 'Signal'] = -1
 
         data['Position'] = data['Signal'].shift(1)
         data['Daily Return'] = data['Close'].pct_change()

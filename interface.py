@@ -71,7 +71,7 @@ tk.Entry(ma_frame, textvariable=ma_long).grid(row=1, column=1, padx=6, pady=2)
 
 model_frames["Moving Average Crossover"] = ma_frame
 
-#logistic regression frame type shit
+#logistic regression frame
 logreg_frame = tk.Frame(container)
 
 tk.Label(logreg_frame, text="Features:").grid(row=0, column=0)

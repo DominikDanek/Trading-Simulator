@@ -13,6 +13,7 @@ class Model:
         self.e = e
         self.t = t
         self.data = yf.download(self.t, start=self.s, end=self.e)
+
     def plot_returns(self, data):
 
         plt.figure(figsize=(14, 7))
@@ -46,8 +47,30 @@ class moving_average_crossover(Model):
 class rsi_mean_reversion(Model):
     def get_returns(self,period,overbought,oversold):
         data = self.data
-        
-         
+
+        data["Daily Return"] = data["Close"].pct_change()
+
+        delta = data['Close'].diff()
+        gain = (delta.where(delta > 0, 0)).rolling(window=period).mean()
+        loss = (-delta.where(delta < 0, 0)).rolling(window=period).mean()
+
+        rs = gain / loss
+        data["RSI"] = 100 - (100 / (1 + rs))
+
+        data["Signal"] = 0
+        data.loc[data["RSI"] < oversold, "Signal"] = 1
+        data.loc[data["RSI"] > overbought, "Signal"] = -1
+
+        # data["Position"] = (data["Signal"].shift(1))
+
+        data["Position"] = (data["Signal"].replace(0, np.nan).ffill().fillna(0).shift(1))
+
+        data["Strategy Return"] = data["Position"] * data["Daily Return"]
+
+        data["Cumulative Market Return"] = (1 + data["Daily Return"]).cumprod()
+        data["Cumulative Strategy Return"] = (1 + data["Strategy Return"]).cumprod()
+
+        return data
 class logistics_regression(Model):
     def get_returns(self):
         data = self.data

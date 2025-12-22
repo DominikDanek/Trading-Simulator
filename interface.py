@@ -4,14 +4,14 @@ import tkinter as tk
 
 interface = tk.Tk()
 interface.title('Trading model simulator')
-interface.geometry('1000x550')
+interface.geometry('1000x600')
 
 selected_model = tk.StringVar()
 
 def show_selected_frame(model):
     for f in model_frames.values():
-        f.pack_forget() #here I am basically removing all the frames and on the next line below I only show the frames for the model thats selected
-    frame = model_frames.get(model) 
+        f.pack_forget() #removing all the frames 
+    frame = model_frames.get(model) #showing the frame of chosen model
     if frame:
         frame.pack(fill = 'x',padx = 20,pady=15)
 
@@ -41,6 +41,7 @@ model_frames = {
 
 }
 
+#rsi mean reversion frame
 rsi_frame = tk.Frame(container)
 
 tk.Label(rsi_frame, text="RSI Period:").grid(row=0, column=0)
@@ -60,11 +61,11 @@ model_frames["Rsi Mean Reversion"] = rsi_frame
 #moving average frame
 ma_frame = tk.Frame(container)
 
-tk.Label(ma_frame, text="Short MA Period:").grid(row=0, column=0)
+tk.Label(ma_frame, text="Short MA period:").grid(row=0, column=0)
 ma_short = tk.IntVar(value=10)
 tk.Entry(ma_frame, textvariable=ma_short).grid(row=0, column=1, padx=6, pady=2)
 
-tk.Label(ma_frame, text="Long MA Period:").grid(row=1, column=0)
+tk.Label(ma_frame, text="Long MA period:").grid(row=1, column=0)
 ma_long = tk.IntVar(value=50)
 tk.Entry(ma_frame, textvariable=ma_long).grid(row=1, column=1, padx=6, pady=2)
 
@@ -75,43 +76,49 @@ model_frames["Moving Average Crossover"] = ma_frame
 logreg_frame = tk.Frame(container)
 
 tk.Label(logreg_frame, text="Features:").grid(row=0, column=0)
-logreg_features = tk.StringVar(value="open,high,low,close") #gonna change these inputs to stuff required for log reg
+logreg_features = tk.StringVar(value="open,high,low,close") #temporary
 tk.Entry(logreg_frame, textvariable=logreg_features, width=30).grid(row=0, column=1, padx=6, pady=2)
 
 tk.Label(logreg_frame, text="Regularisation:").grid(row=1, column=0)
 logreg_C = tk.DoubleVar(value=1.0)
 tk.Entry(logreg_frame, textvariable=logreg_C).grid(row=1, column=1, padx=6, pady=2)
 
-tk.Label(logreg_frame, text=":").grid(row=2, column=0)
+tk.Label(logreg_frame, text=":").grid(row=2, column=0)#temporary
 logreg_split = tk.DoubleVar(value=0.2)
 tk.Entry(logreg_frame, textvariable=logreg_split).grid(row=2, column=1, padx=6, pady=2)
 
 model_frames["Logistic Regression"] = logreg_frame
-
 show_selected_frame(combo_box.get())
 
-#stock and date range selection below
-tk.Label(interface, text="Ticker:").pack()
-stock = tk.Entry(interface, width=30)
-stock.insert(0,'AAPL')
-stock.pack(pady=5)
+#stock and date range selection 
 
-dates_frame = tk.Frame(interface)
-dates_frame.pack(pady=10)
+# tk.Label(interface, text="Ticker:").pack()
+# stock = tk.Entry(interface, width=30)
+# stock.insert(0,'AAPL')
+# stock.pack(pady=5)
 
-tk.Label(dates_frame, text="start:").grid(row=0, column=0, padx=10, pady=5)
-start = tk.Entry(dates_frame)
+tick_dates_frame = tk.Frame(interface)
+tick_dates_frame.pack(pady=10)
+
+tk.Label(tick_dates_frame, text="Ticker:").grid(row=0, column = 1, padx=10, pady=5)
+tick = tk.Entry(tick_dates_frame, width=30)
+tick.insert(0,'AAPL')
+tick.grid(row=1,column =1,padx= 10, pady = 5)
+
+tk.Label(tick_dates_frame, text="start:").grid(row=2, column=0,padx = 10, pady=5)
+start = tk.Entry(tick_dates_frame)
 start.insert(0,'2023-12-01')
-start.grid(row=0, column=1, padx=10, pady=5)
+start.grid(row=2, column=1, padx=10, pady=5)
 
-tk.Label(dates_frame, text="end:").grid(row=0, column=2, padx=10, pady=5)
-end = tk.Entry(dates_frame)
+tk.Label(tick_dates_frame, text="end:").grid(row=2, column=2, pady=5)
+end = tk.Entry(tick_dates_frame)
 end.insert(0,'2025-12-01')
-end.grid(row=0, column=3, padx=10, pady=5)
+end.grid(row=2, column=3, padx=10, pady=5)
 
 def run():
     model = selected_model.get()
-
+    pct_return = 0
+    returns = None
     if model == "Rsi Mean Reversion":
         data = {
             "model": model,
@@ -119,16 +126,18 @@ def run():
             "overbought": rsi_overbought.get(),
             "oversold": rsi_oversold.get(),
         }
-
+        model = rsi_mean_reversion(start.get(),end.get(),tick.get())
+        returns = model.get_returns(data['rsi_period'],data['overbought'],data['oversold'])
+        pct_return = model.plot_returns(returns)
     elif model == "Moving Average Crossover":
         data = {
             "model": model,
             "short_ma": ma_short.get(),
             "long_ma": ma_long.get(),
         }
-        model = moving_average_crossover(start.get(),end.get(),stock.get())
+        model = moving_average_crossover(start.get(),end.get(),tick.get())
         returns = model.get_returns(data['short_ma'],data['long_ma'])
-        print(model.plot_returns(returns))
+        pct_return = model.plot_returns(returns)
 
     elif model == "Logistic Regression":
         data = {
@@ -140,6 +149,9 @@ def run():
     else:
         data = {"model": model}
 
+    model.plot_returns(returns)
+    returns_box.delete("1.0", tk.END)
+    returns_box.insert(tk.END, f"{pct_return}%")
 returns_frame = tk.Frame(interface)
 returns_frame.pack(pady=10)
 returns_label = tk.Label(returns_frame, text="Percentage return:")

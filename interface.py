@@ -10,7 +10,7 @@ selected_model = tk.StringVar()
 
 def show_selected_frame(model):
     for f in model_frames.values():
-        f.pack_forget() #removing all the frames 
+        f.pack_forget() #removing all the frames
     frame = model_frames.get(model) #showing the frame of chosen model
     if frame:
         frame.pack(fill = 'x',padx = 20,pady=15)
@@ -41,7 +41,6 @@ model_frames = {
 
 }
 
-#rsi mean reversion frame
 rsi_frame = tk.Frame(container)
 
 tk.Label(rsi_frame, text="RSI Period:").grid(row=0, column=0)
@@ -75,15 +74,15 @@ model_frames["Moving Average Crossover"] = ma_frame
 #logistic regression frame
 logreg_frame = tk.Frame(container)
 
-tk.Label(logreg_frame, text="Features:").grid(row=0, column=0)
-logreg_features = tk.StringVar(value="open,high,low,close") #temporary
+tk.Label(logreg_frame, text="Train Features :(period,short,long)").grid(row=0, column=0)
+logreg_features = tk.StringVar(value="14,5,20") #temporary
 tk.Entry(logreg_frame, textvariable=logreg_features, width=30).grid(row=0, column=1, padx=6, pady=2)
 
-tk.Label(logreg_frame, text="Regularisation:").grid(row=1, column=0)
-logreg_C = tk.DoubleVar(value=1.0)
-tk.Entry(logreg_frame, textvariable=logreg_C).grid(row=1, column=1, padx=6, pady=2)
+tk.Label(logreg_frame, text="Strategy Bounnds (High,Low)").grid(row=1, column=0)
+logreg_bounds = tk.StringVar(value="0.55,0.45")
+tk.Entry(logreg_frame, textvariable=logreg_bounds).grid(row=1, column=1, padx=6, pady=2)
 
-tk.Label(logreg_frame, text=":").grid(row=2, column=0)#temporary
+tk.Label(logreg_frame, text="Train Split (between 1.0-0.0):").grid(row=2, column=0)#temporary
 logreg_split = tk.DoubleVar(value=0.2)
 tk.Entry(logreg_frame, textvariable=logreg_split).grid(row=2, column=1, padx=6, pady=2)
 
@@ -142,16 +141,20 @@ def run():
     elif model == "Logistic Regression":
         data = {
             "model": model,
-            "features": [f.strip() for f in logreg_features.get().split(",") if f.strip()],
-            "C": logreg_C.get(),
+            "features": [float(f.strip()) for f in logreg_features.get().split(",")],#period,short,long
+            "bounds": [float(f.strip()) for f in logreg_bounds.get().split(",")],#High,Low
             "test_split": logreg_split.get(),
         }
+        model = logistic_regression(start.get(),end.get(),tick.get())
+        model.get_features(data['features'][0],data['features'][1],data['features'][2])
+        model.train(data['test_split'])
+        returns = model.strategy(data['bounds'][0],data['bounds'][1])
+        pct_return = model.plot_returns(returns)
     else:
         data = {"model": model}
-
-    model.plot_returns(returns)
     returns_box.delete("1.0", tk.END)
     returns_box.insert(tk.END, f"{pct_return}%")
+
 returns_frame = tk.Frame(interface)
 returns_frame.pack(pady=10)
 returns_label = tk.Label(returns_frame, text="Percentage return:")

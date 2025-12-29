@@ -40,9 +40,7 @@ class moving_average_crossover(Model):
         data.loc[data['SMA_short'] < data['SMA_long'], 'Signal'] = -1
 
         data['Position'] = data['Signal'].shift(1)
-        
         data['Strategy Return'] = data['Position'] * data['Daily Return']
-
         data['Cumulative Market Return'] = (1 + data['Daily Return']).cumprod()
         data['Cumulative Strategy Return'] = (1 + data['Strategy Return']).cumprod()
         return data
@@ -52,23 +50,18 @@ class rsi_mean_reversion(Model):
         data = self.data
 
         data["Daily Return"] = data["Close"].pct_change()
-
         delta = data['Close'].diff()
         gain = (delta.where(delta > 0, 0)).rolling(window=period).mean() #getting the average gain and loss over input period
         loss = (-delta.where(delta < 0, 0)).rolling(window=period).mean()
-
         rs = gain / loss
 
         data["RSI"] = 100 - (100 / (1 + rs)) #calculate rsi
-
         data["Signal"] = 0
         data.loc[data["RSI"] < oversold, "Signal"] = 1
         data.loc[data["RSI"] > overbought, "Signal"] = -1
 
         data["Position"] = (data["Signal"].replace(0, np.nan).ffill().fillna(0).shift(1))
-
         data["Strategy Return"] = data["Position"] * data["Daily Return"]
-
         data["Cumulative Market Return"] = (1 + data["Daily Return"]).cumprod()
         data["Cumulative Strategy Return"] = (1 + data["Strategy Return"]).cumprod()
 
@@ -77,16 +70,16 @@ class rsi_mean_reversion(Model):
 class logistic_regression(Model):
     def __init__(self,s,e,t):
         super().__init__(s,e,t)
+
         #trained model
         self.model = Pipeline([
             ("scaler", StandardScaler()),
-            ("lr", LogisticRegression(solver="lbfgs"))
-        ])
+            ("lr", LogisticRegression(solver="lbfgs"))])
+        
         self.data = yf.download(self.t, start=self.s, end=self.e)[["Close", "Volume"]].dropna()
-        print('hello', len(self.data))
-        
+
     def get_features(self,period,short_window,long_window):
-        
+
         data = self.data.copy()
         data['Daily Return'] = data['Close'].pct_change()
         data['returns'] = data['Daily Return']
@@ -107,7 +100,6 @@ class logistic_regression(Model):
 
         data = data.dropna()
         self.data = data
-        print("Rows after features B:", len(self.data))
 
     def train(self, test_split):
         data = self.data.copy()
@@ -127,33 +119,31 @@ class logistic_regression(Model):
         self.model.fit(X_train, y_train)
         self.features = features
         self.split_index = split
-
         self.data = data
 
     def predict_probabilities(self):
         data = self.data
-
         X = data[self.features]
         probs = self.model.predict_proba(X)[:, 1]
-
         data["prob_up"] = probs
         return data
 
     def strategy(self, upper, lower):
         data = self.predict_probabilities()
-        print(data)
 
         data["Signal"] = 0
         data.loc[data["prob_up"] > upper, "Signal"] = 1
         data.loc[data["prob_up"] < lower, "Signal"] = -1
 
-        print(data)
-        data["Strategy Return"] = data["Signal"] * data["Daily Return"]
-
+        data["Position"] = data["Signal"].shift(1)
+        data["Strategy Return"] = data["Position"] * data["Daily Return"]
         data["Cumulative Market Return"] = (1 + data["Daily Return"]).cumprod()
         data["Cumulative Strategy Return"] = (1 + data["Strategy Return"]).cumprod()
-
         return data
+
+
+
+
 
 
 

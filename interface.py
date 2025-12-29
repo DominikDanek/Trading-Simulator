@@ -79,22 +79,16 @@ logreg_features = tk.StringVar(value="14,5,20") #temporary
 tk.Entry(logreg_frame, textvariable=logreg_features, width=30).grid(row=0, column=1, padx=6, pady=2)
 
 tk.Label(logreg_frame, text="Strategy Bounnds (High,Low)").grid(row=1, column=0)
-logreg_bounds = tk.StringVar(value="0.55,0.45")
+logreg_bounds = tk.StringVar(value="0.53,0.50")
 tk.Entry(logreg_frame, textvariable=logreg_bounds).grid(row=1, column=1, padx=6, pady=2)
 
 tk.Label(logreg_frame, text="Train Split (between 1.0-0.0):").grid(row=2, column=0)#temporary
-logreg_split = tk.DoubleVar(value=0.2)
+logreg_split = tk.DoubleVar(value=0.7)
 tk.Entry(logreg_frame, textvariable=logreg_split).grid(row=2, column=1, padx=6, pady=2)
 
 model_frames["Logistic Regression"] = logreg_frame
 show_selected_frame(combo_box.get())
 
-#stock and date range selection 
-
-# tk.Label(interface, text="Ticker:").pack()
-# stock = tk.Entry(interface, width=30)
-# stock.insert(0,'AAPL')
-# stock.pack(pady=5)
 
 tick_dates_frame = tk.Frame(interface)
 tick_dates_frame.pack(pady=10)
@@ -106,7 +100,7 @@ tick.grid(row=1,column =1,padx= 10, pady = 5)
 
 tk.Label(tick_dates_frame, text="start:").grid(row=2, column=0,padx = 10, pady=5)
 start = tk.Entry(tick_dates_frame)
-start.insert(0,'2023-12-01')
+start.insert(0,'2018-01-01')
 start.grid(row=2, column=1, padx=10, pady=5)
 
 tk.Label(tick_dates_frame, text="end:").grid(row=2, column=2, pady=5)
@@ -118,6 +112,7 @@ def run():
     model = selected_model.get()
     pct_return = 0
     returns = None
+
     if model == "Rsi Mean Reversion":
         data = {
             "model": model,
@@ -126,8 +121,9 @@ def run():
             "oversold": rsi_oversold.get(),
         }
         model = rsi_mean_reversion(start.get(),end.get(),tick.get())
-        returns = model.get_returns(data['rsi_period'],data['overbought'],data['oversold'])
+        returns = model.get_money(data['rsi_period'],data['overbought'],data['oversold'])
         pct_return = model.plot_returns(returns)
+
     elif model == "Moving Average Crossover":
         data = {
             "model": model,
@@ -141,7 +137,7 @@ def run():
     elif model == "Logistic Regression":
         data = {
             "model": model,
-            "features": [float(f.strip()) for f in logreg_features.get().split(",")],#period,short,long
+            "features": [int(f.strip()) for f in logreg_features.get().split(",")],#period,short,long
             "bounds": [float(f.strip()) for f in logreg_bounds.get().split(",")],#High,Low
             "test_split": logreg_split.get(),
         }
@@ -150,8 +146,10 @@ def run():
         model.train(data['test_split'])
         returns = model.strategy(data['bounds'][0],data['bounds'][1])
         pct_return = model.plot_returns(returns)
+
     else:
         data = {"model": model}
+        
     returns_box.delete("1.0", tk.END)
     returns_box.insert(tk.END, f"{pct_return}%")
 
